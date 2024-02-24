@@ -42,7 +42,7 @@ func (h *Handler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	title := r.FormValue("title")
 	description := r.FormValue("description")
 
-	_, err := h.todoAppClient.CreateTodo(title, description)
+	err := h.todoAppClient.CreateTodo(title, description)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -77,7 +77,7 @@ func (h *Handler) UpdateTodoStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.todoAppClient.UpdateTodo(&common.Todo{
+	err = h.todoAppClient.UpdateTodo(&common.Todo{
 		ID:     id,
 		Status: status,
 	})

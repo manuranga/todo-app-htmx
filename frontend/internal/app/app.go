@@ -81,7 +81,7 @@ func (c *TodoAppClient) GetTodoById(id string) (*common.Todo, error) {
 }
 
 // Create a new todo
-func (c *TodoAppClient) CreateTodo(title string, description string) (*common.Todo, error) {
+func (c *TodoAppClient) CreateTodo(title string, description string) error {
 	payload := strings.NewReader(
 		fmt.Sprintf(`{"title": "%s", "description": "%s, status: false"}`,
 			title,
@@ -92,27 +92,19 @@ func (c *TodoAppClient) CreateTodo(title string, description string) (*common.To
 	req, err := http.NewRequest("POST", c.url+"/todos", payload)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	defer resp.Body.Close()
 
-	var todo common.Todo
-
-	err = json.NewDecoder(resp.Body).Decode(&todo)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &todo, nil
+	return nil
 }
 
 func (c *TodoAppClient) UpdateTodoById(id string) (*common.Todo, error) {
@@ -142,7 +134,7 @@ func (c *TodoAppClient) UpdateTodoById(id string) (*common.Todo, error) {
 	return &todo, nil
 }
 
-func (c *TodoAppClient) UpdateTodo(t *common.Todo) (*common.Todo, error) {
+func (c *TodoAppClient) UpdateTodo(t *common.Todo) error {
 	payload := strings.NewReader(
 		fmt.Sprintf(
 			`{"title": "%s", "description": "%s", "status": %t}`,
@@ -155,27 +147,19 @@ func (c *TodoAppClient) UpdateTodo(t *common.Todo) (*common.Todo, error) {
 	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/todos/%d", c.url, t.ID), payload)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	defer resp.Body.Close()
 
-	var todo common.Todo
-
-	err = json.NewDecoder(resp.Body).Decode(&todo)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &todo, nil
+	return nil
 }
 
 func (c *TodoAppClient) DeleteTodoById(id string) error {
