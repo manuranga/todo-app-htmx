@@ -106,7 +106,8 @@ func (s *TodoService) Create() func(c *gin.Context) {
 
 		todo.ID = int(lastID)
 
-		c.JSON(201, todo)
+		c.Header("Location", fmt.Sprintf("/todos/%d", todo.ID))
+		c.Status(201)
 	}
 }
 
@@ -149,7 +150,8 @@ func (s *TodoService) Update() func(c *gin.Context) {
 			return
 		}
 
-		c.JSON(200, todo)
+		c.Header("Location", fmt.Sprintf("/todos/%d", todo.ID))
+		c.Status(204)
 	}
 }
 
@@ -169,7 +171,7 @@ func (s *TodoService) Delete() func(c *gin.Context) {
 			return
 		}
 
-		c.JSON(200, gin.H{"message": "common.Todo deleted"})
+		c.Status(204)
 	}
 }
 
