@@ -11,133 +11,50 @@ import (
 )
 
 type ITodoService interface {
-	GetAll() ([]common.Todo, error)
-	GetByID(id int) (common.Todo, error)
-	Create(todo common.Todo) (common.Todo, error)
-	Update(todo common.Todo) (common.Todo, error)
-	Delete(id int) error
+	GetAll() func(c *gin.Context)
+	GetByID() func(c *gin.Context)
+	Create() func(c *gin.Context)
+	Update() func(c *gin.Context)
+	Delete() func(c *gin.Context)
 }
 
 type TodoService struct {
 	db *sql.DB
 }
 
-func (s *TodoService) GetAll() ([]common.Todo, error) {
-	rows, err := s.db.Query("SELECT * FROM todos")
+func (s *TodoService) GetAll() func(c *gin.Context) {
+	return func(c *gin.Context) {
 
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	var todos []common.Todo = []common.Todo{}
-
-	for rows.Next() {
-		var todo common.Todo
-
-		err := rows.Scan(&todo.ID, &todo.Title, &todo.Description, &todo.Status)
-
-		if err != nil {
-			return nil, err
-		}
-
-		todos = append(todos, todo)
-	}
-
-	return todos, nil
-
-}
-
-func (s *TodoService) GetByID(id int) (common.Todo, error) {
-	var todo common.Todo
-
-	row := s.db.QueryRow("SELECT * FROM todos WHERE id = ?", id)
-
-	err := row.Scan(&todo.ID, &todo.Title, &todo.Description, &todo.Status)
-
-	if err != nil {
-		return todo, err
-	}
-
-	return todo, nil
-}
-
-func (s *TodoService) Create(todo common.Todo) (common.Todo, error) {
-	result, err := s.db.Exec(
-		"INSERT INTO todos (title, description, status) VALUES (?, ?, ?)",
-		todo.Title,
-		todo.Description,
-		todo.Status)
-
-	if err != nil {
-		return todo, err
-	}
-
-	lastID, err := result.LastInsertId()
-
-	if err != nil {
-		return todo, err
-	}
-
-	todo.ID = int(lastID)
-
-	return todo, nil
-}
-
-func (s *TodoService) Update(todo common.Todo) (common.Todo, error) {
-	cols := []string{}
-
-	if todo.Title != "" {
-		cols = append(cols, "title = '"+todo.Title+"'")
-	}
-
-	if todo.Description != "" {
-		cols = append(cols, "description = '"+todo.Description+"'")
-	}
-
-	cols = append(cols, "status = "+strconv.FormatBool(todo.Status))
-
-	_, err := s.db.Exec(
-		fmt.Sprintf("UPDATE todos SET %s WHERE id = ?", strings.Join(cols, ",")),
-		todo.ID)
-
-	if err != nil {
-		return todo, err
-	}
-
-	return todo, nil
-}
-
-func (s *TodoService) Delete(id int) error {
-	_, err := s.db.Exec("DELETE FROM todos WHERE id = ?", id)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func NewTodoService(db *sql.DB) ITodoService {
-	return &TodoService{db}
-}
-
-func RegisterTodoHandler(r *gin.Engine, db *sql.DB) {
-	service := NewTodoService(db)
-
-	r.GET("/todos", func(c *gin.Context) {
-		todos, err := service.GetAll()
+		rows, err := s.db.Query("SELECT * FROM todos")
 
 		if err != nil {
 			c.JSON(500, gin.H{"message": err.Error()})
 			return
 		}
 
-		c.JSON(200, todos)
-	})
+		defer rows.Close()
 
-	r.GET("/todos/:id", func(c *gin.Context) {
+		var todos []common.Todo = []common.Todo{}
+
+		for rows.Next() {
+			var todo common.Todo
+
+			err := rows.Scan(&todo.ID, &todo.Title, &todo.Description, &todo.Status)
+
+			if err != nil {
+				c.JSON(500, gin.H{"message": err.Error()})
+				return
+			}
+
+			todos = append(todos, todo)
+		}
+
+		c.JSON(200, todos)
+	}
+}
+
+func (s *TodoService) GetByID() func(c *gin.Context) {
+	return func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("id"))
 
 		if err != nil {
@@ -145,7 +62,11 @@ func RegisterTodoHandler(r *gin.Engine, db *sql.DB) {
 			return
 		}
 
-		todo, err := service.GetByID(id)
+		var todo common.Todo
+
+		row := s.db.QueryRow("SELECT * FROM todos WHERE id = ?", id)
+
+		err = row.Scan(&todo.ID, &todo.Title, &todo.Description, &todo.Status)
 
 		if err != nil {
 			c.JSON(500, gin.H{"message": err.Error()})
@@ -153,9 +74,11 @@ func RegisterTodoHandler(r *gin.Engine, db *sql.DB) {
 		}
 
 		c.JSON(200, todo)
-	})
+	}
+}
 
-	r.POST("/todos", func(c *gin.Context) {
+func (s *TodoService) Create() func(c *gin.Context) {
+	return func(c *gin.Context) {
 		var todo common.Todo
 
 		if err := c.ShouldBindJSON(&todo); err != nil {
@@ -163,17 +86,32 @@ func RegisterTodoHandler(r *gin.Engine, db *sql.DB) {
 			return
 		}
 
-		newTodo, err := service.Create(todo)
+		result, err := s.db.Exec(
+			"INSERT INTO todos (title, description, status) VALUES (?, ?, ?)",
+			todo.Title,
+			todo.Description,
+			todo.Status)
 
 		if err != nil {
 			c.JSON(500, gin.H{"message": err.Error()})
 			return
 		}
 
-		c.JSON(201, newTodo)
-	})
+		lastID, err := result.LastInsertId()
 
-	r.PUT("/todos/:id", func(c *gin.Context) {
+		if err != nil {
+			c.JSON(500, gin.H{"message": err.Error()})
+			return
+		}
+
+		todo.ID = int(lastID)
+
+		c.JSON(201, todo)
+	}
+}
+
+func (s *TodoService) Update() func(c *gin.Context) {
+	return func(c *gin.Context) {
 		var todo common.Todo
 
 		if err := c.ShouldBindJSON(&todo); err != nil {
@@ -190,17 +128,33 @@ func RegisterTodoHandler(r *gin.Engine, db *sql.DB) {
 
 		todo.ID = id
 
-		newTodo, err := service.Update(todo)
+		cols := []string{}
+
+		if todo.Title != "" {
+			cols = append(cols, "title = '"+todo.Title+"'")
+		}
+
+		if todo.Description != "" {
+			cols = append(cols, "description = '"+todo.Description+"'")
+		}
+
+		cols = append(cols, "status = "+strconv.FormatBool(todo.Status))
+
+		_, err = s.db.Exec(
+			fmt.Sprintf("UPDATE todos SET %s WHERE id = ?", strings.Join(cols, ",")),
+			todo.ID)
 
 		if err != nil {
 			c.JSON(500, gin.H{"message": err.Error()})
 			return
 		}
 
-		c.JSON(200, newTodo)
-	})
+		c.JSON(200, todo)
+	}
+}
 
-	r.DELETE("/todos/:id", func(c *gin.Context) {
+func (s *TodoService) Delete() func(c *gin.Context) {
+	return func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("id"))
 
 		if err != nil {
@@ -208,7 +162,7 @@ func RegisterTodoHandler(r *gin.Engine, db *sql.DB) {
 			return
 		}
 
-		err = service.Delete(id)
+		_, err = s.db.Exec("DELETE FROM todos WHERE id = ?", id)
 
 		if err != nil {
 			c.JSON(500, gin.H{"message": err.Error()})
@@ -216,5 +170,23 @@ func RegisterTodoHandler(r *gin.Engine, db *sql.DB) {
 		}
 
 		c.JSON(200, gin.H{"message": "common.Todo deleted"})
-	})
+	}
+}
+
+func NewTodoService(db *sql.DB) ITodoService {
+	return &TodoService{db}
+}
+
+func RegisterTodoHandler(r *gin.Engine, db *sql.DB) {
+	service := NewTodoService(db)
+
+	todoRoutes := r.Group("/todos")
+	{
+		todoRoutes.GET("/", service.GetAll())
+		todoRoutes.GET("/:id", service.GetByID())
+		todoRoutes.POST("/", service.Create())
+		todoRoutes.PUT("/:id", service.Update())
+		todoRoutes.DELETE("/:id", service.Delete())
+	}
+
 }
