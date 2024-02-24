@@ -184,11 +184,11 @@ func RegisterTodoHandler(r *gin.Engine, db *sql.DB) {
 
 	todoRoutes := r.Group("/todos")
 	{
-		todoRoutes.GET("/", service.GetAll())
-		todoRoutes.GET("/:id", service.GetByID())
-		todoRoutes.POST("/", service.Create())
-		todoRoutes.PUT("/:id", service.Update())
-		todoRoutes.DELETE("/:id", service.Delete())
+		todoRoutes.GET("", service.GetAll())
+		todoRoutes.GET(":id", service.GetByID())
+		todoRoutes.POST("", service.Create())
+		todoRoutes.PUT(":id", service.Update())
+		todoRoutes.DELETE(":id", service.Delete())
 	}
 
 }
