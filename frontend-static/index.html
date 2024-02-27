@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eggplant Expression Editor</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <script src="https://unpkg.com/@asgardeo/auth-spa@latest/dist/asgardeo-spa.production.min.js"></script>
+    <script>
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "l7q2wkodyf");
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            white-space: nowrap;
+        }
+
+        body {
+            margin: 0;
+            background: white;
+            background-image: radial-gradient(#ddd 1px, transparent 0);
+            background-size: 20px 20px;
+            background-position: -9px -9px;
+            font-family: 'Roboto';
+            font-size: 22px;
+            color: #333;
+        }
+
+        .flow {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            width: 100%;
+        }
+
+        .flow-split {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+        }
+
+        .node {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fdfdfd;
+            width: 500px;
+            box-shadow: rgba(9, 30, 66, 0.25) 0px 4px 8px -2px, rgba(9, 30, 66, 0.08) 0px 0px 0px 1px;
+            margin: 20px 0;
+            align-self: center;
+        }
+
+        .node h4 {
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f4;
+            border-bottom: 1px solid #ccc;
+            border-radius: 5px 5px 0 0;
+            color: #555;
+        }
+
+        .node table {
+            width: 100%;
+            padding: 10px;
+            border-collapse:collapse;
+        }
+
+        .node td:first-child {
+            width: 150px;
+        }
+
+        .node td {
+            padding: 5px;
+        }
+
+        .node input[type="text"] {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+            width: 100%;
+        }
+
+        .node select {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .node select:disabled {
+            background-color: #f4f4f4;
+        }
+
+        .node input[type="text"]:focus {
+            outline: none;
+            border: 1px solid #999;
+        }
+
+        .help {
+            display: none;
+        }
+
+        .node tr.selected + tr.help {
+            display: table-row;
+        }
+
+        .node .help li:hover {
+            background-color: #f4f4f4;
+        }
+
+        .node select {
+            font-size: 0.9em;
+            width: 100%;
+        }
+
+        .node select.editable {
+            width: calc(100% - 1.5em);
+        }
+
+        .node select.editable + div{
+            margin-top: -2px;
+            float: right;
+        }
+
+        .node textarea {
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+        }
+
+        .node .suggestion {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .node .suggestion input {
+            display: none;
+        }
+
+        .node .suggestion label {
+            order: -1;
+        }
+
+        .node .suggestion > div {
+            display: none;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        .node .suggestion input+label {
+            color: #999;
+            padding: 0 10px;
+        }
+
+        .node .suggestion input:checked+label {
+            color: #333;
+            text-decoration: underline;
+        }
+
+        .node .suggestion input:checked+label+div {
+            display: block;
+        }
+
+        .node .suggestion ul {
+            padding-left: 10px;
+        }
+
+        .node .suggestion li {
+            list-style: none;
+            font-size: 0.8em;
+            padding: 5px 0;
+        }
+
+        .node .code {
+            font-family: monospace;
+            padding: 2px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .node tr.indent {
+            box-shadow: inset 0 7px 9px -7px rgba(0,0,0,0.7);
+            border-top: 12px solid transparent;
+            background-color: #f4f4f4;
+            max-height: 0;
+        }
+
+        .node tr.outdent {
+            box-shadow:  inset 0 -7px 9px -7px rgba(0,0,0,0.7);
+            border-bottom: 12px solid transparent;
+            background-color: #f4f4f4;
+        }
+
+        .node tr.indent.outdent {
+            box-shadow: inset 0 7px 9px -7px rgba(0,0,0,0.7), inset 0 -7px 9px -7px rgba(0,0,0,0.7);
+            border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent;
+            background-color: #f4f4f4;
+        }
+
+        .node .dent {
+            background-color: #f4f4f4;
+        }
+
+        .node .add-connection {
+            float: right;
+        }
+
+        .actor {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100px;
+            margin: 20px 0;
+        }
+
+        .actor {
+            padding-right: 150px;
+        }
+
+        .actor h4 {
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f4;
+            border-radius: 5px 5px 0 0;
+            color: #555;
+            box-shadow: rgba(9, 30, 66, 0.25) 0px 4px 8px -2px, rgba(9, 30, 66, 0.08) 0px 0px 0px 1px;
+        }
+
+        .actor .line {
+            height: 100%;
+            width: 2px;
+            background-color: #aaa;
+        }
+
+        .survey {
+            padding: 10px;
+            margin: 20px;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: rgba(9, 30, 66, 0.25) 0px 4px 8px -2px, rgba(9, 30, 66, 0.08) 0px 0px 0px 1px;
+            max-width: 600px;
+        }
+        .url {
+            text-decoration: underline;
+        }
+
+        .survey p {
+            white-space: normal;
+        }
+        .survey li {
+            white-space: normal;
+        }
+
+        .add-node {
+            width: 24px;
+            height: 24px;
+            background-image: url("data:image/svg+xml;base64,CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMjQiIGhlaWdodD0iMjQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMwMDAiLz48cGF0aCBkPSJNMTcgMTNIN2ExIDEgMCAwIDEgMC0yaDEwYy42IDAgMSAuNCAxIDFzLS40IDEtMSAxeiIvPjxwYXRoIGQ9Ik0xMSAxN1Y3YzAtLjYuNC0xIDEtMXMxIC40IDEgMXYxMGMwIC42LS40IDEtMSAxYTEgMSAwIDAgMS0xLTF6Ii8+PC9zdmc+Cg==");
+            border: none;
+            background-color: transparent;
+            cursor: pointer;
+            opacity: .5;
+        }
+
+        .add-node:hover {
+            opacity: 1;
+        }
+
+        .disclaimer {
+            color: #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="flow-split">
+        <div class="flow">
+            <div class="node">
+                <h4>HTTP API</h4>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>Method</td>
+                            <td>
+                                <select>
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Path</td>
+                            <td>
+                                <input type="text" value="/">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <button type="button" class="add-node" aria-label="Add a node"></button>
+
+            <div class="node">
+                <h4>If</h4>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>Condition</td>
+                            <td>
+                                <input type="text" value="">
+                            </td>
+                        </tr>
+                        <tr class="help">
+                            <td></td>
+                            <td>
+                                <div class="suggestion">
+                                    <input class="tab-radio" type="radio" id="tab-data" checked name="id2o3uis02">
+                                    <label for="tab-data">Data</label>
+                                    <div class="tab">
+                                        <ul>
+                                            <li>HTTP message body json value</li>
+                                            <li>HTTP header</li>
+                                        </ul>
+                                    </div>
+                                    <input class="tab-radio" type="radio" id="tab-functions" name="id2o3uis02">
+                                    <label for="tab-functions">Functions</label>
+                                    <div class="tab">
+                                        <ul>
+                                            <li>string<span class="code">.length()</span></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flow-split">
+                <div class="flow">
+                    <div class="node">
+                        <h4>HTTP Call</h4>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>Connection</td>
+                                    <td>
+                                        <select class="editable" disabled>
+                                        </select>
+                                        <div>
+                                            <button type="button" class="show-add-connection" aria-label="Add Connection">+</button>
+                                            <!-- <button type="button" aria-label="Edit Connection">✎</button> -->
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="indent" style="display: none;">
+                                    <td>Name</td>
+                                    <td>
+                                        <input type="text" value="">
+                                    </td>
+                                </tr>
+                                <tr class="dent" style="display: none;">
+                                    <td>URL</td>
+                                    <td>
+                                        <input type="text" value="">
+                                    </td>
+                                </tr>
+                                <tr class="outdent" style="display: none;">
+                                    <td></td>
+                                    <td>
+                                        <button id="tmp" class="add-connection" type="button">Add</button>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>Method</td>
+                                    <td>
+                                        <select>
+                                            <option value="GET">GET</option>
+                                            <option value="POST">POST</option>
+                                            <option value="PUT">PUT</option>
+                                            <option value="DELETE">DELETE</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Path</td>
+                                    <td>
+                                        <input type="text" value="/">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Data</td>
+                                    <td>
+                                        <input type="text" value="">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flow">
+                    <div class="node">
+                        <h4>New XML</h4>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>Data</td>
+                                    <td>
+                                        <input type="text" value="<data><specialization>any</specialization></data>">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="survey">
+            <h2>UX Survey</h2>
+            <hr>
+            <button type="button" onclick="auth.signIn()">Log In</button>
+            <p>You are an integration developer with past experience with products such as WSO2 MI, MuleSoft Anypoint Studio.</p>
+            <p>You are tasked with creating a new integration flow with content based routing.</p>
+            <ul>
+                <li>Accept HTTP POST requests for the path <span class="url">/trackings</span></li>
+                <li>HTTP request body is a JSON</li>
+                <li>
+                    The JSON body of the request contains a key named <code>"country"</code> which can have either <code>"UK"</code> or <code>"DE"</code> as its value.
+                    <ul>
+                        <li>If the value if "UK", route the request to <span class="url">https://api.dhl.com/parceluk/</span></li>
+                        <li>Else, route the request to <span class="url">https://api.dhl.com/dpi/</span></li>
+                    </ul>
+                </li>
+                <li>Return the response from the HTTP call to the original caller</li>
+            </ul>
+
+            <p class="disclaimer">
+                Your actions are being recorded for research purposes using Microsoft Clarity.
+            </p>
+            <button type="button" class="accept-cookies">Accept</button>
+        </div>
+    </div>
+    <script>
+        var auth = AsgardeoAuth.AsgardeoSPAClient.getInstance();
+        auth.initialize({
+            signInRedirectURL: "https://d2p6iyc78j6ld2.cloudfront.net/login",
+            signOutRedirectURL: "https://d2p6iyc78j6ld2.cloudfront.net/login",
+            clientID: "f2rNqSckXMQXe0yafUqq6gCah3Ua",
+            baseUrl: "https://api.asgardeo.io/t/eggplantsite",
+            scope: [ "openid","profile" ]
+        });
+        document.querySelector('.accept-cookies').addEventListener('click', function () {
+            window.clarity('consent');
+            document.querySelector('.disclaimer').style.display = 'none';
+        });
+        document.addEventListener('focus', function (e) {
+            if (e.target.tagName !== 'INPUT') {
+                return;
+            }
+            const selected = document.querySelectorAll('.node tr.selected');
+            for (let i = 0; i < selected.length; i++) {
+                selected[i].classList.remove('selected');
+            }
+            e.target.closest('tr').classList.add('selected');
+            // e.preventDefault();
+        }, true);
+
+         document.querySelector('.show-add-connection').addEventListener('click', function (e) {
+            const thisTr = e.target.closest('tr');
+            let tr = thisTr.nextElementSibling;
+            while (tr.tagName === 'TR') {
+                tr.style.display = 'table-row';
+                if (tr.classList.contains('outdent')) {
+                    break;
+                }
+                tr = tr.nextElementSibling;
+            }
+        }, true);
+
+        // document.querySelector('.connection-add').addEventListener("click", clicked,true);
+
+function clicked(){
+    alert('clicked');
+}
+    </script>
+</body>
+
+</html>
